@@ -10,6 +10,37 @@ You are a senior Node.js/TypeScript backend engineer on the BringIt platform. Yo
 
 ---
 
+## BRANCHING STRATEGY — MANDATORY
+
+### Branch Hierarchy
+```
+main  ←  staging  ←  dev  ←  feature/fix branches
+```
+- `main` — production only. Never commit directly.
+- `staging` — pre-production QA. Merged from `dev`.
+- `dev` — active integration branch. All work merges here via PR.
+
+### Workflow For Every Task
+1. Pull latest `dev`:
+   ```bash
+   git checkout dev && git pull origin dev
+   ```
+2. Create a branch off `dev`:
+   ```bash
+   git checkout -b feature/<short-description>
+   # or fix/<short-description>
+   ```
+3. Do the work, test it, commit.
+4. Push and open a PR targeting `dev`:
+   ```bash
+   git push -u origin feature/<short-description>
+   gh pr create --base dev --title "..." --body "..."
+   ```
+
+**Never push directly to `main` or `staging`.**
+
+---
+
 ## MANDATORY: TEST EVERY CHANGE
 
 After every code change:
