@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(redis-server --daemonize yes)",
+      "Bash(brew services:*)",
+      "Bash(brew install:*)",
+      "Bash(redis-cli ping:*)",
+      "Bash(sort echo:*)",
+      "Bash(ps:*)"
+    ]
+  }
+}

@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  role          UserRole       @default(CUSTOMER)
+  phone         String?        @unique
+  name          String?
+  avatarUrl     String?
+  fcmToken      String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  addresses     Address[]
+  carts         Cart[]
+  favorites     Favorite[]
+  notifications Notification[]
+  orders        Order[]        @relation("CustomerOrders")
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String
+  street    String
+  city      String
+  state     String?
+  latitude  Decimal  @db.Decimal(10, 8)
+  longitude Decimal  @db.Decimal(11, 8)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders    Order[]
+}
+
+model Store {
+  id               String         @id @default(cuid())
+  name             String
+  slug             String         @unique
+  description      String?
+  phone            String?        @unique
+  type             StoreType
+  subType          String?
+  status           StoreStatus    @default(PENDING)
+  isOpen           Boolean        @default(false)
+  latitude         Decimal        @db.Decimal(10, 8)
+  longitude        Decimal        @db.Decimal(11, 8)
+  fcmToken         String?
+  addressLine      String
+  city             String
+  deliveryRadiusKm Decimal        @db.Decimal(5, 2)
+  deliveryFeePkr   Decimal        @db.Decimal(10, 2)
+  logoUrl          String?
+  bannerUrls       Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  idCardBackUrl    String?
+  idCardFrontUrl   String?
+  carts            Cart[]
+  favorites        Favorite[]
+  menuItems        MenuItem[]
+  orders           Order[]
+  riders           Rider[]
+  storeProducts    StoreProduct[]
+}
+
+model CatalogProduct {
+  id        String         @id @default(cuid())
+  name      String
+  slug      String         @unique
+  category  String?
+  brand     String?
+  imageUrl  String?
+  barcode   String?
+  createdAt DateTime       @default(now())
+  listings  StoreProduct[]
+}
+
+model StoreProduct {
+  id         String         @id @default(cuid())
+  storeId    String
+  productId  String
+  pricePkr   Decimal        @db.Decimal(12, 2)
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  product    CatalogProduct @relation(fields: [productId], references: [id])
+  store      Store          @relation(fields: [storeId], references: [id])
+
+  @@unique([storeId, productId])
+}
+
+model MenuItem {
+  id          String      @id @default(cuid())
+  storeId     String
+  name        String
+  description String?
+  imageUrl    String?
+  category    String?
+  pricePkr    Decimal     @db.Decimal(12, 2)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  cartItems   CartItem[]
+  store       Store       @relation(fields: [storeId], references: [id])
+  orderItems  OrderItem[]
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  storeId   String
+  createdAt DateTime   @default(now())
+  store     Store      @relation(fields: [storeId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+
+  @@unique([userId, storeId])
+}
+
+model CartItem {
+  id             String        @id @default(cuid())
+  cartId         String
+  storeProductId String?
+  menuItemId     String?
+  quantity       Int
+  cart           Cart          @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  menuItem       MenuItem?     @relation(fields: [menuItemId], references: [id])
+  storeProduct   StoreProduct? @relation(fields: [storeProductId], references: [id])
+}
+
+model Rider {
+  id                    String    @id @default(cuid())
+  phone                 String    @unique
+  name                  String?
+  storeId               String?
+  isAvailable           Boolean   @default(true)
+  fcmToken              String?
+  latitude              Decimal?  @db.Decimal(10, 8)
+  longitude             Decimal?  @db.Decimal(11, 8)
+  lastLocationUpdatedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  orders                Order[]   @relation("AssignedRider")
+  store                 Store?    @relation(fields: [storeId], references: [id])
+
+  @@index([latitude, longitude])
+}
+
+model Order {
+  id             String        @id @default(cuid())
+  customerId     String
+  storeId        String
+  riderId        String?
+  addressId      String
+  status         OrderStatus   @default(PLACED)
+  paymentMethod  PaymentMethod
+  subtotalPkr    Decimal       @db.Decimal(12, 2)
+  deliveryFeePkr Decimal       @db.Decimal(10, 2)
+  totalPkr       Decimal       @db.Decimal(12, 2)
+  cancelReason   String?
+  modifyReason   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  address        Address       @relation(fields: [addressId], references: [id])
+  customer       User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  rider          Rider?        @relation("AssignedRider", fields: [riderId], references: [id])
+  store          Store         @relation(fields: [storeId], references: [id])
+  items          OrderItem[]
+
+  @@index([customerId])
+  @@index([storeId])
+  @@index([riderId])
+  @@index([status])
+}
+
+model OrderItem {
+  id             String        @id @default(cuid())
+  orderId        String
+  storeProductId String?
+  menuItemId     String?
+  quantity       Int
+  unitPricePkr   Decimal       @db.Decimal(12, 2)
+  totalPkr       Decimal       @db.Decimal(12, 2)
+  menuItem       MenuItem?     @relation(fields: [menuItemId], references: [id])
+  order          Order         @relation(fields: [orderId], references: [id])
+  storeProduct   StoreProduct? @relation(fields: [storeProductId], references: [id])
+}
+
+model Notification {
+  id           String                   @id @default(cuid())
+  receiverType NotificationReceiverType
+  receiverId   String
+  title        String
+  body         String?
+  data         Json?
+  read         Boolean                  @default(false)
+  createdAt    DateTime                 @default(now())
+  userId       String?
+  user         User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([receiverType, receiverId])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  storeId   String
+  createdAt DateTime @default(now())
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storeId])
+}
+
+enum UserRole {
+  CUSTOMER
+  STORE_OWNER
+  RIDER
+  ADMIN
+}
+
+enum StoreType {
+  RESTAURANT
+  STORE
+}
+
+enum NotificationReceiverType {
+  USER
+  RIDER
+  STORE
+}
+
+enum OrderStatus {
+  PLACED
+  ACCEPTED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum StoreStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+}

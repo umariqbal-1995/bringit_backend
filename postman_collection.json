@@ -1,0 +1,967 @@
+{
+  "info": {
+    "name": "BringIt Delivery Platform API",
+    "description": "Complete API for BringIt — grocery + restaurant delivery platform. Three apps: User, Store, Rider.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "bringit-delivery-api-v1"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "user_token",  "value": "", "type": "string", "description": "Set after user verify-otp" },
+    { "key": "store_token", "value": "", "type": "string", "description": "Set after store verify-otp" },
+    { "key": "rider_token", "value": "", "type": "string", "description": "Set after rider verify-otp" },
+    { "key": "user_phone",  "value": "+923001234567", "type": "string" },
+    { "key": "store_phone", "value": "+923111111111", "type": "string" },
+    { "key": "rider_phone", "value": "+923331234567", "type": "string" },
+    { "key": "restaurant_id", "value": "cmn6iasf50006b8d46b5m1xbm", "type": "string" },
+    { "key": "grocery_id",    "value": "cmn6iasf70007b8d4tzlc52ge", "type": "string" },
+    { "key": "address_id",    "value": "cmn6iasf20003b8d4twju7b1j", "type": "string" },
+    { "key": "menu_item_id",  "value": "cmn6iasf70009b8d4t8ik1xyv", "type": "string" },
+    { "key": "store_product_id", "value": "cmn6iasfc000ib8d4jbz4sv87", "type": "string" },
+    { "key": "rider_id",      "value": "cmn6iasff000ob8d4gd63cw14", "type": "string" },
+    { "key": "order_id",      "value": "", "type": "string" },
+    { "key": "notif_id",      "value": "", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "🧑 User App",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Send OTP",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/auth/send-otp",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{user_phone}}\"\n}" }
+              }
+            },
+            {
+              "name": "Verify OTP → get token",
+              "event": [{
+                "listen": "test",
+                "script": { "exec": ["var r = pm.response.json();", "if(r.success) pm.collectionVariables.set('user_token', r.data.token);"], "type": "text/javascript" }
+              }],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/auth/verify-otp",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{user_phone}}\",\n  \"otp\": \"123456\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "User Profile",
+          "item": [
+            {
+              "name": "GET /me",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/me",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /me",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/me",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{user_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ahmed Khan Updated\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Addresses",
+          "item": [
+            {
+              "name": "GET /addresses",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/addresses",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "POST /addresses",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/addresses",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{user_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"label\": \"Work\",\n  \"street\": \"Tech Park, Main Blvd\",\n  \"city\": \"Lahore\",\n  \"state\": \"Punjab\",\n  \"latitude\": 31.5200,\n  \"longitude\": 74.3580\n}" }
+              }
+            },
+            {
+              "name": "PUT /addresses/:id",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/addresses/{{address_id}}",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{user_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"label\": \"Home Updated\"\n}" }
+              }
+            },
+            {
+              "name": "DELETE /addresses/:id",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/addresses/{{address_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stores & Restaurants",
+          "item": [
+            {
+              "name": "GET /stores",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/stores?page=1&limit=10",
+                  "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+                }
+              }
+            },
+            {
+              "name": "GET /restaurants",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/restaurants?page=1&limit=10",
+                  "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+                }
+              }
+            },
+            {
+              "name": "GET /stores/:id/products",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/stores/{{grocery_id}}/products?page=1&limit=20",
+                  "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+                }
+              }
+            },
+            {
+              "name": "GET /restaurants/:id/menu",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/restaurants/{{restaurant_id}}/menu?page=1&limit=20",
+                  "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cart",
+          "item": [
+            {
+              "name": "GET /cart/:storeId",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/cart/{{restaurant_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "POST /cart/:storeId/items",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/cart/{{restaurant_id}}/items",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{user_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"menuItemId\": \"{{menu_item_id}}\",\n  \"quantity\": 2\n}" }
+              }
+            },
+            {
+              "name": "PUT /cart/:storeId/items/:itemId",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/cart/{{restaurant_id}}/items/CART_ITEM_ID",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{user_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"quantity\": 3\n}" }
+              }
+            },
+            {
+              "name": "DELETE /cart/:storeId/items/:itemId",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/cart/{{restaurant_id}}/items/CART_ITEM_ID",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "DELETE /cart/:storeId (clear cart)",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/cart/{{restaurant_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders",
+          "item": [
+            {
+              "name": "POST /orders (place order)",
+              "event": [{
+                "listen": "test",
+                "script": { "exec": ["var r = pm.response.json();", "if(r.success) pm.collectionVariables.set('order_id', r.data.id);"], "type": "text/javascript" }
+              }],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/orders",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{user_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"storeId\": \"{{restaurant_id}}\",\n  \"addressId\": \"{{address_id}}\",\n  \"paymentMethod\": \"CASH_ON_DELIVERY\",\n  \"items\": [\n    { \"menuItemId\": \"{{menu_item_id}}\", \"quantity\": 1 }\n  ]\n}"
+                }
+              }
+            },
+            {
+              "name": "GET /orders",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/orders?page=1&limit=10",
+                  "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+                },
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "GET /orders/:id",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/orders/{{order_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "POST /orders/:id/cancel",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/orders/{{order_id}}/cancel",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{user_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Changed my mind\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications",
+          "item": [
+            {
+              "name": "GET /notifications",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/notifications",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /notifications/:id/read",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/notifications/{{notif_id}}/read",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /notifications/read-all",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/notifications/read-all",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Favorites",
+          "item": [
+            {
+              "name": "GET /favorites",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/favorites",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "POST /favorites/:storeId",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/favorites/{{grocery_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            },
+            {
+              "name": "DELETE /favorites/:storeId",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/favorites/{{grocery_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{user_token}}" }]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "🏪 Store App",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Send OTP",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/auth/send-otp",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{store_phone}}\"\n}" }
+              }
+            },
+            {
+              "name": "Verify OTP → get token",
+              "event": [{
+                "listen": "test",
+                "script": { "exec": ["var r = pm.response.json();", "if(r.success) pm.collectionVariables.set('store_token', r.data.token);"], "type": "text/javascript" }
+              }],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/auth/verify-otp",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{store_phone}}\",\n  \"otp\": \"123456\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Store Profile",
+          "item": [
+            {
+              "name": "GET /store/me",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/me",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /store/me",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/store/me",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"description\": \"Best pizza in Lahore!\",\n  \"deliveryFeePkr\": 120\n}" }
+              }
+            },
+            {
+              "name": "PUT /store/status",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/store/status",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"isOpen\": true\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dashboard",
+          "item": [
+            {
+              "name": "GET /store/dashboard/summary",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/dashboard/summary",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Store Products (Grocery)",
+          "item": [
+            {
+              "name": "GET /store/products",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/products",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "POST /store/products",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/products",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"productId\": \"CATALOG_PRODUCT_ID\",\n  \"pricePkr\": 199\n}" }
+              }
+            },
+            {
+              "name": "PUT /store/products/:id",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/store/products/{{store_product_id}}",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"pricePkr\": 259,\n  \"isActive\": true\n}" }
+              }
+            },
+            {
+              "name": "DELETE /store/products/:id",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/store/products/{{store_product_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Menu Items (Restaurant)",
+          "item": [
+            {
+              "name": "GET /store/menu",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/menu",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "POST /store/menu",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/menu",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"BBQ Chicken Pizza\",\n  \"description\": \"Smoky BBQ sauce with grilled chicken\",\n  \"category\": \"Pizza\",\n  \"pricePkr\": 1099,\n  \"isActive\": true\n}" }
+              }
+            },
+            {
+              "name": "PUT /store/menu/:id",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/store/menu/{{menu_item_id}}",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"pricePkr\": 849\n}" }
+              }
+            },
+            {
+              "name": "DELETE /store/menu/:id",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/store/menu/{{menu_item_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders",
+          "item": [
+            {
+              "name": "GET /store/orders",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/store/orders?page=1&limit=10",
+                  "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+                },
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "GET /store/orders/:id",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/orders/{{order_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "POST /store/orders/:id/accept (manual rider)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/orders/{{order_id}}/accept",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"riderId\": \"{{rider_id}}\"\n}" }
+              }
+            },
+            {
+              "name": "POST /store/orders/:id/accept (auto assign)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/orders/{{order_id}}/accept",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{}" }
+              }
+            },
+            {
+              "name": "POST /store/orders/:id/reject",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/orders/{{order_id}}/reject",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Store is too busy right now\"\n}" }
+              }
+            },
+            {
+              "name": "POST /store/orders/:id/prepare",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/orders/{{order_id}}/prepare",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "POST /store/orders/:id/mark-ready",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/orders/{{order_id}}/mark-ready",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Riders",
+          "item": [
+            {
+              "name": "GET /store/riders",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/riders",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "POST /store/riders",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/store/riders",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+923009999999\",\n  \"name\": \"New Rider Name\"\n}" }
+              }
+            },
+            {
+              "name": "PUT /store/riders/:id",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/store/riders/{{rider_id}}",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{store_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"isAvailable\": true\n}" }
+              }
+            },
+            {
+              "name": "DELETE /store/riders/:id",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/store/riders/{{rider_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Analytics",
+          "item": [
+            {
+              "name": "GET /store/analytics/overview",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/analytics/overview",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "GET /store/analytics/sales",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/analytics/sales",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "GET /store/analytics/orders",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/analytics/orders",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "GET /store/analytics/top-products",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/analytics/top-products",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "GET /store/analytics/revenue-trend",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/store/analytics/revenue-trend?days=30",
+                  "query": [{ "key": "days", "value": "30" }]
+                },
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications",
+          "item": [
+            {
+              "name": "GET /store/notifications",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/store/notifications",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /store/notifications/:id/read",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/store/notifications/{{notif_id}}/read",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /store/notifications/read-all",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/store/notifications/read-all",
+                "header": [{ "key": "Authorization", "value": "Bearer {{store_token}}" }]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "🏍️ Rider App",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Login (send OTP)",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/rider/auth/login",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{rider_phone}}\"\n}" }
+              }
+            },
+            {
+              "name": "Refresh Token (verify OTP)",
+              "event": [{
+                "listen": "test",
+                "script": { "exec": ["var r = pm.response.json();", "if(r.success) pm.collectionVariables.set('rider_token', r.data.token);"], "type": "text/javascript" }
+              }],
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/rider/auth/refresh-token",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{rider_phone}}\",\n  \"otp\": \"123456\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rider Profile",
+          "item": [
+            {
+              "name": "GET /rider/me",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/me",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /rider/me",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/rider/me",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{rider_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bilal Updated\"\n}" }
+              }
+            },
+            {
+              "name": "PUT /rider/availability",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/rider/availability",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{rider_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"isAvailable\": true\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Location",
+          "item": [
+            {
+              "name": "POST /rider/location",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/rider/location",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{rider_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"latitude\": 31.4780,\n  \"longitude\": 74.4130\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders",
+          "item": [
+            {
+              "name": "GET /rider/orders/assigned",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/orders/assigned",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "GET /rider/orders/:id",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/orders/{{order_id}}",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "POST /rider/orders/:id/accept",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/rider/orders/{{order_id}}/accept",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "POST /rider/orders/:id/pickup",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/rider/orders/{{order_id}}/pickup",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "POST /rider/orders/:id/start-delivery",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/rider/orders/{{order_id}}/start-delivery",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "POST /rider/orders/:id/complete",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/rider/orders/{{order_id}}/complete",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "POST /rider/orders/:id/cancel",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/rider/orders/{{order_id}}/cancel",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{rider_token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Vehicle broke down\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Earnings",
+          "item": [
+            {
+              "name": "GET /rider/earnings/summary",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/earnings/summary",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "GET /rider/earnings/history",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/rider/earnings/history?page=1&limit=10",
+                  "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }]
+                },
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Analytics",
+          "item": [
+            {
+              "name": "GET /rider/analytics/overview",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/analytics/overview",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "GET /rider/analytics/earnings",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/analytics/earnings",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "GET /rider/analytics/deliveries",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/analytics/deliveries",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "GET /rider/analytics/performance",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/analytics/performance",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications",
+          "item": [
+            {
+              "name": "GET /rider/notifications",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/rider/notifications",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /rider/notifications/:id/read",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/rider/notifications/{{notif_id}}/read",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            },
+            {
+              "name": "PUT /rider/notifications/read-all",
+              "request": {
+                "method": "PUT",
+                "url": "{{base_url}}/rider/notifications/read-all",
+                "header": [{ "key": "Authorization", "value": "Bearer {{rider_token}}" }]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "🔧 Utils",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    }
+  ]
+}
