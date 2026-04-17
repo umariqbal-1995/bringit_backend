@@ -11,10 +11,29 @@ import { orderRepository } from '../repositories/order.repository';
 import { storeRepository } from '../repositories/store.repository';
 import { riderRepository } from '../repositories/rider.repository';
 import { riderAssignmentService } from './rider-assignment.service';
+import { notificationService } from './notification.service';
 import { AppError } from '../middlewares/error.middleware';
 import { buildMeta } from '../utils/pagination';
 import { PlaceOrderDto, CancelOrderDto, AcceptOrderDto } from '../dtos/order.dto';
 import { OrderStatus } from '@prisma/client';
+
+/** Fetch FCM token for a user/store/rider without throwing */
+async function getFcmToken(type: 'user' | 'store' | 'rider', id: string): Promise<string | null> {
+  try {
+    if (type === 'user') {
+      const r = await prisma.user.findUnique({ where: { id }, select: { fcmToken: true } });
+      return r?.fcmToken ?? null;
+    }
+    if (type === 'store') {
+      const r = await prisma.store.findUnique({ where: { id }, select: { fcmToken: true } });
+      return r?.fcmToken ?? null;
+    }
+    const r = await prisma.rider.findUnique({ where: { id }, select: { fcmToken: true } });
+    return r?.fcmToken ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export const orderService = {
   // ─── Place Order ──────────────────────────────────────────────────────────
@@ -93,7 +112,20 @@ export const orderService = {
       return created;
     });
 
-    return orderRepository.findById(order.id);
+    const placed = await orderRepository.findById(order.id);
+
+    // Notify store of new order (fire-and-forget)
+    const storeFcm = await getFcmToken('store', dto.storeId);
+    void notificationService.createAndPush({
+      receiverType: 'STORE',
+      receiverId: dto.storeId,
+      fcmToken: storeFcm,
+      title: '🛍️ New Order',
+      body: `You have a new order of Rs ${total.toFixed(0)}`,
+      data: { type: 'order', orderId: order.id, action: 'PLACED' },
+    });
+
+    return placed;
   },
 
   // ─── Customer: List Orders ────────────────────────────────────────────────
@@ -115,7 +147,20 @@ export const orderService = {
     if (!['PLACED', 'ACCEPTED'].includes(order.status)) {
       throw new AppError('Order cannot be cancelled at this stage', 400);
     }
-    return orderRepository.updateStatus(orderId, 'CANCELLED', { cancelReason: dto.reason });
+    const updated = await orderRepository.updateStatus(orderId, 'CANCELLED', { cancelReason: dto.reason });
+
+    // Notify store of cancellation
+    const storeFcm = await getFcmToken('store', order.storeId);
+    void notificationService.createAndPush({
+      receiverType: 'STORE',
+      receiverId: order.storeId,
+      fcmToken: storeFcm,
+      title: '❌ Order Cancelled',
+      body: 'A customer cancelled their order.',
+      data: { type: 'order', orderId, action: 'CANCELLED' },
+    });
+
+    return updated;
   },
 
   // ─── Store: Order Management ──────────────────────────────────────────────
@@ -151,14 +196,53 @@ export const orderService = {
       }
     }
 
-    return orderRepository.findById(orderId);
+    const accepted = await orderRepository.findById(orderId);
+
+    // Notify user order was accepted
+    const userFcm = await getFcmToken('user', order.customerId);
+    void notificationService.createAndPush({
+      receiverType: 'USER',
+      receiverId: order.customerId,
+      fcmToken: userFcm,
+      title: '✅ Order Accepted',
+      body: 'Your order has been accepted and is being prepared.',
+      data: { type: 'order', orderId, action: 'ACCEPTED' },
+    });
+
+    // Notify assigned rider if one was assigned
+    if (assignedRiderId) {
+      const riderFcm = await getFcmToken('rider', assignedRiderId);
+      void notificationService.createAndPush({
+        receiverType: 'RIDER',
+        receiverId: assignedRiderId,
+        fcmToken: riderFcm,
+        title: '🛵 New Delivery',
+        body: 'You have been assigned a new delivery.',
+        data: { type: 'order', orderId, action: 'ASSIGNED' },
+      });
+    }
+
+    return accepted;
   },
 
   async rejectOrder(storeId: string, orderId: string, reason: string) {
     const order = await orderRepository.findByIdRaw(orderId);
     if (!order || order.storeId !== storeId) throw new AppError('Order not found', 404);
     if (order.status !== 'PLACED') throw new AppError('Order cannot be rejected at this stage', 400);
-    return orderRepository.updateStatus(orderId, 'CANCELLED', { cancelReason: reason });
+    const updated = await orderRepository.updateStatus(orderId, 'CANCELLED', { cancelReason: reason });
+
+    // Notify user their order was rejected
+    const userFcm = await getFcmToken('user', order.customerId);
+    void notificationService.createAndPush({
+      receiverType: 'USER',
+      receiverId: order.customerId,
+      fcmToken: userFcm,
+      title: '❌ Order Not Accepted',
+      body: `Your order was not accepted. Reason: ${reason}`,
+      data: { type: 'order', orderId, action: 'REJECTED' },
+    });
+
+    return updated;
   },
 
   async markPreparing(storeId: string, orderId: string, riderId?: string) {
@@ -203,7 +287,20 @@ export const orderService = {
     const order = await orderRepository.findByIdRaw(orderId);
     if (!order || order.riderId !== riderId) throw new AppError('Order not found', 404);
     if (order.status !== 'PREPARING') throw new AppError('Order must be PREPARING before pickup', 400);
-    return orderRepository.updateStatus(orderId, 'OUT_FOR_DELIVERY');
+    const updated = await orderRepository.updateStatus(orderId, 'OUT_FOR_DELIVERY');
+
+    // Notify user rider is on the way
+    const userFcm = await getFcmToken('user', order.customerId);
+    void notificationService.createAndPush({
+      receiverType: 'USER',
+      receiverId: order.customerId,
+      fcmToken: userFcm,
+      title: '🛵 On the Way!',
+      body: 'Your order has been picked up and is on the way to you.',
+      data: { type: 'order', orderId, action: 'OUT_FOR_DELIVERY' },
+    });
+
+    return updated;
   },
 
   async startDelivery(riderId: string, orderId: string) {
@@ -221,6 +318,18 @@ export const orderService = {
     const updated = await orderRepository.updateStatus(orderId, 'DELIVERED');
     // Free up the rider
     await riderRepository.updateAvailability(riderId, true);
+
+    // Notify user order delivered
+    const userFcm = await getFcmToken('user', order.customerId);
+    void notificationService.createAndPush({
+      receiverType: 'USER',
+      receiverId: order.customerId,
+      fcmToken: userFcm,
+      title: '🎉 Order Delivered!',
+      body: 'Your order has been delivered. Enjoy!',
+      data: { type: 'order', orderId, action: 'DELIVERED' },
+    });
+
     return updated;
   },
 

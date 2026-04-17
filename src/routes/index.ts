@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { testPushNotification } from '../controllers/notification.controller';
 
 // ─── User App Routes ──────────────────────────────────────────────────────────
 import userAuthRoutes from './user/auth.routes';
@@ -35,6 +36,9 @@ const router = Router();
 router.get('/health', (_req, res) => {
   res.json({ success: true, message: 'BringIt API is running', timestamp: new Date().toISOString() });
 });
+
+// ── Dev: Test push notification (no auth — remove in production) ───────────
+router.post('/dev/test-push', testPushNotification);
 
 // ── USER APP ──────────────────────────────────────────────────────────────────
 router.use('/auth', userAuthRoutes);

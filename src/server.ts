@@ -3,6 +3,7 @@ import { createApp } from './app';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { connectRedis, disconnectRedis } from './config/redis';
 import { initSocketServer } from './sockets';
+import { initFirebase } from './config/firebase';
 import { env } from './config/env';
 import { logger } from './utils/logger';
 
@@ -10,6 +11,7 @@ async function bootstrap(): Promise<void> {
   // ── Connect to external services ─────────────────────────────────────────────
   await connectDatabase();
   await connectRedis();
+  initFirebase();
 
   // ── Create Express app & HTTP server ─────────────────────────────────────────
   const app = createApp();
